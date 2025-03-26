@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Nutrition Planner</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f4f4f4;
+        }
+        .container {
+            width: 50%;
+            margin: auto;
+            padding: 20px;
+            background: white;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+        }
+        input, button {
+            margin: 10px;
+            padding: 10px;
+            width: 80%;
+        }
+        #chatbox {
+            height: 200px;
+            overflow-y: auto;
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-bottom: 10px;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>AI Nutrition Planner</h1>
+        <div id="login">
+            <h2>Login</h2>
+            <input type="text" id="username" placeholder="Enter Username">
+            <button onclick="login()">Login</button>
+        </div>
+        <div id="chatbot" style="display: none;">
+            <h2>Chatbot</h2>
+            <div id="chatbox"></div>
+            <input type="text" id="userInput" placeholder="Enter a food item...">
+            <button onclick="sendMessage()">Send</button>
+        </div>
+    </div>
+    <script>
+        function login() {
+            let username = document.getElementById("username").value;
+            if (username.trim() !== "") {
+                document.getElementById("login").style.display = "none";
+                document.getElementById("chatbot").style.display = "block";
+            } else {
+                alert("Please enter a valid username");
+            }
+        }
+        
+        async function sendMessage() {
+            let userInput = document.getElementById("userInput").value;
+            let chatbox = document.getElementById("chatbox");
+
+            if (userInput.trim() !== "") {
+                chatbox.innerHTML += `<p><strong>You:</strong> ${userInput}</p>`;
+                document.getElementById("userInput").value = "";
+
+                try {
+                    let response = await fetch("http://127.0.0.1:5000/predict", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ food_name: userInput })
+                    });
+                    let data = await response.json();
+                    let botReply = data.error 
+                        ? `Sorry, ${data.error}` 
+                        : `Calories: ${data.Calories}, Protein: ${data.Protein}g, Fat: ${data.Fat}g, Carbs: ${data.Carbohydrates}g`;
+                    chatbox.innerHTML += `<p><strong>Bot:</strong> ${botReply}</p>`;
+                } catch (error) {
+                    chatbox.innerHTML += `<p><strong>Bot:</strong> Error contacting the server.</p>`;
+                }
+                chatbox.scrollTop = chatbox.scrollHeight;
+            }
+        }
+    </script>
+</body>
+</html>
