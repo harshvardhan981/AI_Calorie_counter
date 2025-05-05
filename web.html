@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Nutrition Planner - Login / Signup</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: #f4f4f4;
+        }
+        .auth-container {
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            width: 320px;
+        }
+        h2 {
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .btn {
+            width: 100%;
+            padding: 0.7rem;
+            border: none;
+            background-color: #28a745;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            margin-top: 10px;
+        }
+        .btn:hover {
+            background-color: #218838;
+        }
+        .toggle-link {
+            text-align: center;
+            margin-top: 1rem;
+            cursor: pointer;
+            color: #007bff;
+        }
+        .toggle-link:hover {
+            text-decoration: underline;
+        }
+        #message {
+            text-align: center;
+            margin-top: 1rem;
+            color: red;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+
+<div class="auth-container">
+    <h2 id="formTitle">Login</h2>
+
+    <div class="form-group">
+        <label for="username">Username</label>
+        <input type="text" id="username" placeholder="Enter username">
+    </div>
+
+    <div class="form-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" placeholder="Enter password">
+    </div>
+
+    <button class="btn" id="authButton" onclick="handleAuth()">Login</button>
+
+    <div class="toggle-link" onclick="toggleForm()">
+        Don't have an account? Sign up
+    </div>
+
+    <div id="message"></div>
+</div>
+
+<script>
+    let isSignup = false;
+
+    function toggleForm() {
+        isSignup = !isSignup;
+        document.getElementById("formTitle").textContent = isSignup ? "Sign Up" : "Login";
+        document.getElementById("authButton").textContent = isSignup ? "Sign Up" : "Login";
+        document.querySelector(".toggle-link").textContent = isSignup
+            ? "Already have an account? Login"
+            : "Don't have an account? Sign up";
+        document.getElementById("message").textContent = "";
+    }
+
+    async function handleAuth() {
+        const username = document.getElementById("username").value.trim();
+        const password = document.getElementById("password").value.trim();
+        const messageDiv = document.getElementById("message");
+        messageDiv.textContent = "";
+
+        if (!username || !password) {
+            messageDiv.textContent = "Please enter both username and password.";
+            return;
+        }
+
+        const endpoint = isSignup ? "/signup" : "/login";
+
+        try {
+            const response = await fetch(endpoint, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ username, password })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                alert(data.message);
+                if (!isSignup) {
+                    window.location.href = "/dashboard.html";
+                } else {
+                    toggleForm(); // Switch to login after successful signup
+                }
+            } else {
+                messageDiv.textContent = data.message || "Something went wrong.";
+            }
+        } catch (err) {
+            messageDiv.textContent = "Error connecting to server.";
+            console.error(err);
+        }
+    }
+</script>
+
+</body>
+</html>

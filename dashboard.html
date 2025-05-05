@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard - AI Nutrition Chatbot</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            background: #f9f9f9;
+        }
+        .container {
+            max-width: 700px;
+            margin: auto;
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.2);
+        }
+        input, button {
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+        button {
+            background-color: #28a745;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #218838;
+        }
+        .result, .chatbot {
+            margin-top: 20px;
+            background: #e9ecef;
+            padding: 1rem;
+            border-radius: 5px;
+        }
+        .chat-messages {
+            height: 400px;
+            overflow-y: auto;
+            background: #fff;
+            padding: 1rem;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            display: flex;
+            flex-direction: column;
+        }
+        .message {
+            max-width: 70%;
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 15px;
+            line-height: 1.4;
+            position: relative;
+        }
+        .user-message {
+            align-self: flex-end;
+            background: #007bff;
+            color: white;
+            border-bottom-right-radius: 0;
+        }
+        .bot-message {
+            align-self: flex-start;
+            background: #28a745;
+            color: white;
+            border-bottom-left-radius: 0;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>AI Nutrition Dashboard</h2>
+
+    <!-- Normal prediction box -->
+    <input type="text" id="foodInput" placeholder="Enter food name (e.g., Apple)">
+    <button onclick="predictFood()">Predict Nutrients</button>
+
+    <div class="result" id="result" style="display:none;">
+        <h3>Prediction Result</h3>
+        <p id="food"></p>
+        <p id="calories"></p>
+        <p id="protein"></p>
+        <p id="fat"></p>
+        <p id="carbs"></p>
+        <p id="suggestion"></p>
+    </div>
+
+    <!-- Chatbot section -->
+    <div class="chatbot">
+        <h3>Ask Nutrition AI Chatbot</h3>
+        <div class="chat-messages" id="chatMessages"></div>
+        <input type="text" id="chatInput" placeholder="Ask me about a food item or meal idea...">
+        <button onclick="sendChat()">Send</button>
+    </div>
+</div>
+
+<script>
+    async function predictFood(foodName = null) {
+        const inputFood = foodName || document.getElementById('foodInput').value.trim();
+        if (!inputFood) {
+            alert("Please enter a food name!");
+            return;
+        }
+
+        try {
+            const response = await fetch('/predict', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ food_name: inputFood })
+            });
+
+            const data = await response.json();
+
+            if (data.error) {
+                alert(data.error);
+                return;
+            }
+
+            // Show prediction result
+            if (!foodName) {
+                document.getElementById('result').style.display = 'block';
+                document.getElementById('food').textContent = `Food: ${data.Food}`;
+                document.getElementById('calories').textContent = `Calories: ${data.Calories}`;
+                document.getElementById('protein').textContent = `Protein: ${data.Protein} g`;
+                document.getElementById('fat').textContent = `Fat: ${data.Fat} g`;
+                document.getElementById('carbs').textContent = `Carbohydrates: ${data.Carbohydrates} g`;
+                document.getElementById('suggestion').textContent = `Suggestion: ${data.Suggestion}`;
+            }
+
+            return data;
+
+        } catch (error) {
+            alert("Error connecting to server.");
+            console.error(error);
+        }
+    }
+
+    async function sendChat() {
+        const userInput = document.getElementById('chatInput').value.trim();
+        if (!userInput) {
+            alert("Please enter a question!");
+            return;
+        }
+
+        const chatBox = document.getElementById('chatMessages');
+        chatBox.innerHTML += `<div class="message user-message">${userInput}</div>`;
+        document.getElementById('chatInput').value = '';
+
+        // Check for "suggest something for breakfast"
+        if (userInput.toLowerCase().includes('suggest') && userInput.toLowerCase().includes('breakfast')) {
+            try {
+                const response = await fetch('/suggest?query=breakfast');
+                const data = await response.json();
+
+                if (data.error) {
+                    chatBox.innerHTML += `<div class="message bot-message">Sorry, I couldn't find any breakfast suggestions.</div>`;
+                } else {
+                    let suggestionsText = 'Here are some breakfast suggestions:<br>';
+                    data.suggestions.forEach(item => {
+                        suggestionsText += `<strong>${item.Food}</strong> - ${item.Calories} cal, ${item.Protein}g protein, ${item.Fat}g fat, ${item.Carbohydrates}g carbs<br><br>`;
+                    });
+                    chatBox.innerHTML += `<div class="message bot-message">${suggestionsText}</div>`;
+                }
+            } catch (error) {
+                console.error(error);
+                chatBox.innerHTML += `<div class="message bot-message">Error fetching suggestions.</div>`;
+            }
+        } else {
+            // Try to extract a food name
+            const words = userInput.split(' ');
+            let possibleFood = null;
+            for (const word of words) {
+                if (word.length > 2) {
+                    possibleFood = word;
+                    break;
+                }
+            }
+
+            if (possibleFood) {
+                const prediction = await predictFood(possibleFood);
+                if (prediction && !prediction.error) {
+                    chatBox.innerHTML += `<div class="message bot-message">
+                        "${prediction.Food}" has about ${prediction.Calories} calories, ${prediction.Protein}g protein, ${prediction.Fat}g fat, and ${prediction.Carbohydrates}g carbohydrates.<br>
+                        ${prediction.Suggestion}
+                    </div>`;
+                } else {
+                    chatBox.innerHTML += `<div class="message bot-message">Sorry, I couldn't find info about "${possibleFood}".</div>`;
+                }
+            } else {
+                chatBox.innerHTML += `<div class="message bot-message">Please ask me about a specific food item!</div>`;
+            }
+        }
+
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+</script>
+
+</body>
+</html>
